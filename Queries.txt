@@ -1,0 +1,84 @@
+Linq Join Queries
+
+
+ public static List<DashboardModel> GetDashboardMenuItemsBySecurityUserId(Data.IntrepidFirstDayReadyEntities contextObject, int SecurityUserId)
+        {
+            var result = contextObject.DashboardMenu.Where(q => q.SecurityUserId == SecurityUserId).
+                Join(contextObject.Widget, dm => dm.WidgetId, w => w.WidgetId, (dm, w) => new DashboardModel
+                {
+                    WidgetId = w.WidgetId,
+                    MenuId = dm.MenuId,
+                    WidgetTitle = w.WidgetTitle,
+                    IconPath = w.IconPath,
+                    MenuOrder = dm.MenuOrder,
+                    WidgetSize = dm.MenuSize,
+                    Link = w.Link,
+                }).OrderBy(o => o.MenuOrder).ToList();
+            return result;
+        }
+
+ public static List<DashboardModel> GetWidgetsBySecurityUserId(Data.IntrepidFirstDayReadyEntities contextObject, int SecurityUserId)
+        {
+            var result = contextObject.Widget.
+                GroupJoin(contextObject.DashboardMenu.Where(q => q.SecurityUserId == SecurityUserId), w => w.WidgetId, dm => dm.WidgetId, (w, dm) => new { widgets = w, dashboardMenu = dm.FirstOrDefault() }).
+                Select(m => new DashboardModel
+                {
+                    WidgetId = m.widgets.WidgetId,
+                    WidgetTitle = m.widgets.WidgetTitle,
+                    IconPath = m.widgets.IconPath,
+                    IsSelected = m.dashboardMenu.MenuId > 0 ? true : false
+                }).OrderBy(o => o.IsSelected).ToList();
+            return result;
+        }
+
+ public static List<Data.Agenda> GetAgenda(int? id)
+        {
+            using (var dbReadOnly = new IntrepidFirstDayReadyEntities(true))
+            {
+                var lstSessionAgenda = dbReadOnly.InductionSessionAgenda.Where(x => x.InductionSessionID == id && x.Active == true).Select(s => s.AgendaID).ToList();
+                var listAgenda = dbReadOnly.Agenda.Where(s => !lstSessionAgenda.Contains(s.AgendaID)).ToList();
+                return listAgenda.Select(s => new Data.Agenda
+                {
+                    AgendaID = s.AgendaID,
+                    Name = s.Name + " from " + (s.StartTime != null ? s.StartTime.ToString().Substring(0, 5) : "") + " to " + (s.EndTime != null ? s.EndTime.ToString().Substring(0, 5) : "")
+                }).ToList();
+            }
+        }
+
+ public static List<Data.News> GetMostViewedNews()
+        {
+            using (var dbReadOnly = new AccentPortalEntities(true))
+            {
+                DateTime latestBy30days = DateTime.Now.AddDays(-30).Date;
+                var list = dbReadOnly.News.Where(n => n.Status == "Published" && n.PublishDate >= latestBy30days).GroupJoin(
+                dbReadOnly.ArticleViewed, p => p.NewsId, c => c.NewsId, (p, g) => new { p, g }).SelectMany(
+                      temp => temp.g.DefaultIfEmpty(),
+                      (temp, c) =>
+                        new NewsInfoViewModel()
+                        {
+                            NewsId = temp.p.NewsId,
+                            NewsTitle = temp.p.NewsTitle,
+                            PublishDate = temp.p.PublishDate,
+                            FullImagePath = temp.p.FullImagePath,
+                            CreatedDate = temp.p.CreatedDate,
+                            NewsCount = temp.g.Count()
+                        }).Distinct().ToList();
+                return list.OrderByDescending(o => o.NewsCount).Select(s => new Data.News
+                {
+                    NewsId = s.NewsId,
+                    NewsTitle = s.NewsTitle,
+                    PublishDate = s.PublishDate,
+                    FullImagePath = s.FullImagePath,
+                    CreatedDate = s.CreatedDate,
+                }).ToList();
+            }
+        }
+
+insert into [dbo].LookUpEvidenceType(EvidenceTypeId,EvidenceTypeName,Active,Sys_IsLocked,Sys_LockedBy,Sys_LockedDateTime)
+values(1,'ID/Address Check',1,null,null,null),
+(2,'Field Completion',1,null,null,null),
+(3,'Field Review',1,null,null,null),
+(4,'Photograph',1,null,null,null),
+(5,'Police Check',1,null,null,null),
+(6,'Right to Work',1,null,null,null),
+(7,'Occupational Health Check',1,null,null,null);

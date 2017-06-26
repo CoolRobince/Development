@@ -1,0 +1,345 @@
+using Accent.Security;
+using Kendo.Mvc.UI;
+using Kendo.Mvc.UI.Fluent;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Web;
+using System.Web.Mvc;
+
+/// <summary>
+/// Input extensions.
+/// </summary>
+public static partial class InputExtensions
+{
+    #region .Methods.
+
+    /// <summary>
+    /// Adds the delete column.
+    /// </summary>
+    /// <param name="Value">The value.</param>
+    /// <param name="EnableDelete">if set to <c>true</c> [enable delete].</param>
+    /// <param name="DeleteAction">The delete action.</param>
+    /// <param name="Controller">The controller.</param>
+    /// <param name="PropertyName">Name of the property.</param>
+    /// <param name="SecureQueryString">The secure query string.</param>
+    /// <returns></returns>
+    private static string AddDeleteColumn(this object Value, Boolean EnableDelete, string DeleteAction, String Controller, string PropertyName)
+    {
+        if (!EnableDelete) return null;
+        var SecureQueryString = Value.GetPropertyValue<object>(PropertyName).SecureQueryString();
+        return $"<a id='Delete'  class='DeleteRecord' href='{new UrlHelper(HttpContext.Current.Request.RequestContext).Action(DeleteAction, Controller, new { id = Value.GetPropertyValue<object>(PropertyName).SecureQueryString() })}'><i class='fa fa-trash-o'></i></a>";
+    }
+
+    /// <summary>
+    /// Adds the delete column.
+    /// </summary>
+    /// <param name="Value">The value.</param>
+    /// <param name="EnableDelete">if set to <c>true</c> [enable delete].</param>
+    /// <param name="GridName">Name of the grid.</param>
+    /// <param name="PropertyName">Name of the property.</param>
+    /// <returns></returns>
+    private static string AddDeleteColumn(this object Value, string DeleteCallback, string PropertyName)
+    {
+        var SecureQueryString = Value.GetPropertyValue<object>(PropertyName).SecureQueryString();
+        return $"<a onclick = {DeleteCallback}('{SecureQueryString}') class='DeleteRecord'><i class='fa fa-trash-o'></i></a>";
+    }
+
+    /// <summary>
+    /// Adds the edit column.
+    /// </summary>
+    /// <param name="Value">The value.</param>
+    /// <param name="EditAction">The edit action.</param>
+    /// <param name="Controller">The controller.</param>
+    /// <param name="PropertyName">Name of the property.</param>
+    /// <param name="EnableRowClick">if set to <c>true</c> [enable row click].</param>
+    /// <param name="SecureQueryString">The secure query string.</param>
+    /// <returns></returns>
+    private static string AddEditColumn(this object Value, string EditAction, String Controller, string PropertyName, bool EnableRowClick)
+    {
+        var SecureQueryString = Value.GetPropertyValue<object>(PropertyName).SecureQueryString();
+        String HideClass = EnableRowClick ? "HideElement" : "";
+
+        return $"<a id='Save' onclick='setGridAction(1);' class='EditRecord {HideClass}' href='{new UrlHelper(HttpContext.Current.Request.RequestContext).Action(EditAction, Controller, new { id = SecureQueryString })}'><i class='fa fa-pencil-square-o'></i></a>";
+    }
+
+    /// <summary>
+    /// Adds the edit column.
+    /// </summary>
+    /// <param name="Value">The value.</param>
+    /// <param name="GridName">Name of the grid.</param>
+    /// <param name="PropertyName">Name of the property.</param>
+    /// <returns></returns>
+    private static string AddEditColumn(this object Value, string EditCallback, string PropertyName, bool EnableRowClick)
+    {
+        var SecureQueryString = Value.GetPropertyValue<object>(PropertyName).SecureQueryString();
+        String HideClass = EnableRowClick ? "HideElement" : "";
+        return $"<a onclick = {EditCallback}(this,'{SecureQueryString}') class='EditRecord {HideClass} '><i class='fa fa-pencil-square-o'></i></a>";
+    }
+
+    /// <summary>
+    /// Edits the column.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="factory">The factory.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="HeaderTitle">The header title.</param>
+    /// <param name="AddAction">The add action.</param>
+    /// <param name="EditAction">The edit action.</param>
+    /// <param name="DeleteAction">The delete action.</param>
+    /// <param name="Controller">The controller.</param>
+    /// <param name="routeValues">The route values.</param>
+    /// <param name="EnableDelete">if set to <c>true</c> [enable delete].</param>
+    /// <param name="EnableRowClick">if set to <c>true</c> [enable row click].</param>
+    /// <returns></returns>
+    public static GridTemplateColumnBuilder<T> EditColumn<T>(this GridColumnFactory<T> factory, Expression<Func<T, Object>> expression, String HeaderTitle, string AddAction = null, string EditAction = null, string DeleteAction = null, String Controller = null, object routeValues = null, bool EnableDelete = false, bool EnableRowClick = false) where T : class
+    {
+
+        //Make sure we have all the requires values
+        Controller = string.IsNullOrEmpty(Controller) ? HttpContext.Current.Request.RequestContext.RouteData.Values["Controller"]?.ToString() : Controller;
+        EditAction = string.IsNullOrEmpty(EditAction) ? "Edit" : EditAction;
+        DeleteAction = string.IsNullOrEmpty(DeleteAction) ? "Edit" : DeleteAction;
+        AddAction = string.IsNullOrEmpty(AddAction) ? "Edit" : AddAction;
+
+        //Lets get the property name and try and insert actual value from the expression
+        var PropertyName = expression?.MemberInfo()?.Member?.Name;
+
+        if (!string.IsNullOrEmpty(PropertyName)) { expression = e => $"{ e.AddEditColumn(EditAction, Controller, PropertyName, EnableRowClick)}{ e.AddDeleteColumn(EnableDelete, DeleteAction, Controller, PropertyName)}"; }
+
+        if (EnableRowClick)
+        {
+            factory.Container.Selectable.Mode = GridSelectionMode.Single;
+            factory.Container.Events.Add("change", new Kendo.Mvc.ClientHandlerDescriptor() { HandlerName = "HandleGridAction" });
+        }
+        GridTemplateColumn<T> column = new GridTemplateColumn<T>(factory.Container, expression.Compile());
+        Hicom.Core.Client.Security.SecurityUser.PermissionLevel Permissions = (Hicom.Core.Client.Security.SecurityUser.PermissionLevel)factory.Container.ViewContext.Controller.TempData.Peek("Permissions");
+        if (!string.IsNullOrEmpty(HeaderTitle) && Permissions.AddPermission == true)
+            column.HeaderTemplate.Html = $"<a  id='Add' title='{HeaderTitle}' class='AddNewRecord' href='{new UrlHelper(HttpContext.Current.Request.RequestContext).Action(AddAction, Controller, routeValues)}'><i class='fa fa-file-text-o'></i><span><i class='fa fa-plus'></i></span></a></text>";
+        factory.ColumnsContainer.Columns.Add(column);
+        return new GridTemplateColumnBuilder<T>(column);
+    }
+    /// <summary>
+    /// Edits the client column.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="factory">The factory.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="HeaderTitle">The header title.</param>
+    /// <param name="EditAction">The edit action.</param>
+    /// <param name="Controller">The controller.</param>
+    /// <param name="routeValues">The route values.</param>
+    /// <returns></returns>
+    public static GridTemplateColumnBuilder<T> EditClientColumn<T>(this GridColumnFactory<T> factory, Expression<Func<T, Object>> expression, String HeaderTitle, string EditAction = null, String Controller = null, object routeValues = null) where T : class
+    {
+        GridTemplateColumn<T> column = new GridTemplateColumn<T>(factory.Container, expression.Compile());
+        column.ClientTemplate = $"<a id='Add' title='Add user' class='EditRecord' href='{new UrlHelper(HttpContext.Current.Request.RequestContext).Action(EditAction, Controller, routeValues)}'></a>";
+        factory.ColumnsContainer.Columns.Add(column);
+        return new GridTemplateColumnBuilder<T>(column);
+    }
+    /// <summary>
+    /// Edits the popup column.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="factory">The factory.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="HeaderTitle">The header title.</param>
+    /// <param name="GridName">Name of the grid.</param>
+    /// <param name="EnableDelete">if set to <c>true</c> [enable delete].</param>
+    /// <returns></returns>
+    public static GridTemplateColumnBuilder<T> EditPopupColumn<T>(this GridColumnFactory<T> factory, Expression<Func<T, Object>> expression, String HeaderTitle, string EditCallback, string AddCallback = null, string DeleteCallback = null, bool EnableRowClick = false) where T : class
+    {
+        //Lets get the property name and try and insert actual value from the expression
+        var PropertyName = expression?.MemberInfo()?.Member?.Name;
+
+        // Default edit column 
+        if (!string.IsNullOrEmpty(PropertyName))
+            expression = e => $"{ e.AddEditColumn(EditCallback, PropertyName, EnableRowClick)}";
+        Hicom.Core.Client.Security.SecurityUser.PermissionLevel Permissions = (Hicom.Core.Client.Security.SecurityUser.PermissionLevel)factory.Container.ViewContext.Controller.TempData.Peek("Permissions");
+
+        // Check if we need to create delete column.
+        if (!string.IsNullOrEmpty(PropertyName) && !string.IsNullOrEmpty(DeleteCallback) && Permissions.DeletePermission == true)
+            expression = e => $"{ e.AddDeleteColumn(DeleteCallback, PropertyName)}";
+
+
+        if (EnableRowClick)
+        {
+            factory.Container.Selectable.Mode = GridSelectionMode.Single;
+            factory.Container.Events.Add("change", new Kendo.Mvc.ClientHandlerDescriptor() { HandlerName = "HandleGridPopupAction" });
+        }
+
+        GridTemplateColumn<T> column = new GridTemplateColumn<T>(factory.Container, expression.Compile());
+
+        // Check if we need to create add column.
+        if (!string.IsNullOrEmpty(AddCallback) && Permissions.AddPermission == true)
+            column.HeaderTemplate.Html = $"<a onclick = {AddCallback}() title='{HeaderTitle}' class='AddNewRecord'><i class='fa fa-file-text-o'></i><span><i class='fa fa-plus'></i></span></a></text>";
+        factory.ColumnsContainer.Columns.Add(column);
+        return new GridTemplateColumnBuilder<T>(column);
+    }
+
+    /// <summary>
+    /// Hicoms the grid.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="helper">The helper.</param>
+    /// <param name="Controller">The controller.</param>
+    /// <param name="Action">The action.</param>
+    /// <returns></returns>
+    public static Kendo.Mvc.UI.Fluent.GridBuilder<T> HicomGrid<T>(this HtmlHelper helper, string Controller, string Action, Object Model = null, bool EnableRowSelect = true, string EventName = "HandleGridAction") where T : class
+    {
+        Controller = !string.IsNullOrEmpty(Controller) ? Controller : HttpContext.Current.Request.RequestContext.RouteData.Values["controller"].ToString();
+        Action = !string.IsNullOrEmpty(Action) ? Action : "IndexJson";
+        var grid = helper.Kendo().Grid<T>()
+                    .Name("Grid")
+                    .Sortable()
+                    .Scrollable(x => x.Height("auto"))
+                    .Resizable(resize => resize.Columns(true))
+                    .NoRecords("No record found")
+                    .Pageable(pageable => pageable.Refresh(true).PageSizes(new[] { 10, 20, 50, 100, 200, 500 }).ButtonCount(5))
+                    .DataSource(dataSource => dataSource
+                                            .Ajax()
+                                            .Read(read => read.Action(Action, Controller, Model).Data("SerializeFormData").Type(HttpVerbs.Get))
+                                            .PageSize(10)
+                                            );
+        if (EnableRowSelect)
+            grid.Selectable(x => x.Mode(GridSelectionMode.Single));
+
+        if (!string.IsNullOrEmpty(EventName))
+            grid.Events(e => e.Change(EventName));
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Hicoms the grid.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="helper">The helper.</param>
+    /// <param name="Model">The model.</param>
+    /// <param name="IsPageable">if set to <c>true</c> [is pageable].</param>
+    /// <returns></returns>
+    public static Kendo.Mvc.UI.Fluent.GridBuilder<T> HicomGrid<T>(this HtmlHelper helper, object Model, bool IsPageable = true) where T : class
+    {
+        var FilterModel = Model as Hicom.Core.Client.Sql.Objects.QueryFilterBase;
+
+        var grid = helper.Kendo().Grid<T>(FilterModel == null ? Model as IEnumerable<T> : FilterModel.GetPropertyValue<IEnumerable<T>>("Items"))
+                    .Name("Grid")
+                    .Selectable(x => x.Mode(GridSelectionMode.Single))
+                    .Events(e => e.Change("HandleGridAction"))
+                    .Sortable()
+                    .Scrollable(x => x.Height("auto"))
+                    .Resizable(resize => resize.Columns(true))
+                    .NoRecords("No record found");
+        if (IsPageable)
+            grid.Pageable(pageable => pageable.Refresh(true).PageSizes(new[] { 20, 50, 100, 200, 500 }).Numeric(false));
+        //If model is not null then set the required params so we dont have to bind on load
+        if (FilterModel != null)
+        {
+            grid.EnableCustomBinding(true);
+            grid.DataSource(dataSource => dataSource
+                 .Server()
+                 .Total(FilterModel.TotalRecordsFound).PageSize(FilterModel.Take) // set the total number of records
+                  );
+
+        }
+
+        return grid;
+    }
+
+    #endregion
+}
+------------------------------------------------
+
+    /// <typeparam name="TModel">The type of the model.</typeparam>
+    /// <typeparam name="TProperty">The type of the property.</typeparam>
+    /// <param name="htmlHelper">The HTML helper.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="TableName">Name of the table.</param>
+    /// <param name="ValueFieldName">Name of the value field.</param>
+    /// <param name="TextFieldName">Name of the text field.</param>
+    /// <param name="OrderBy">The order by.</param>
+    /// <param name="SelectedValue">The selected value.</param>
+    /// <param name="ComboName">Name of the combo.</param>
+    /// <param name="LabelName">Name of the label.</param>
+    /// <param name="htmlAttributes">The HTML attributes.</param>
+    /// <returns></returns>
+    public static MvcHtmlString HicomComboBoxFor<TModel, TProperty>(this HtmlHelper<TModel> htmlHelper, Expression<Func<TModel, TProperty>> expression,
+     String TableName, String ValueFieldName, String TextFieldName, String OrderBy, String SelectedValue, String ComboName, String LabelName = "", object htmlAttributes = null, String OptionLabel = "")
+    {
+        try
+        {
+            SelectList Custom = new SelectList(LookupManager.ListGetByTable(TableName, ValueFieldName, TextFieldName, OrderBy), "Id", "Name", SelectedValue);
+            return new MvcHtmlString(HicomLabel(htmlHelper.LabelFor(expression), LabelName).ToHtmlString() + htmlHelper.DropDownList(ComboName, Custom, string.IsNullOrEmpty(OptionLabel) ? null : OptionLabel, htmlAttributes));
+        }
+        catch (Exception ex)
+        {
+            ErrorLogManager.Log(ex);
+            return null;
+        }
+    }
+
+  
+    /// </summary>
+    /// <param name="htmlHelper">The HTML helper.</param>
+    /// <param name="TableName">Name of the table.</param>
+    /// <param name="ValueFieldName">Name of the value field.</param>
+    /// <param name="TextFieldName">Name of the text field.</param>
+    /// <param name="OrderBy">The order by.</param>
+    /// <param name="SelectedValue">The selected value.</param>
+    /// <param name="ComboName">Name of the combo.</param>
+    /// <param name="LabelName">Name of the label.</param>
+    /// <param name="htmlAttributes">The HTML attributes.</param>
+    /// <returns></returns>
+    public static MvcHtmlString HicomComboBox(this HtmlHelper htmlHelper, String TableName, String ValueFieldName, String TextFieldName, String OrderBy,
+        String SelectedValue, String ComboName, String LabelName = "", object htmlAttributes = null, String OptionLabel = "")
+    {
+        try
+        {
+            SelectList Custom = new SelectList(LookupManager.ListGetByTable(TableName, ValueFieldName, TextFieldName, OrderBy), "Id", "Name", SelectedValue);
+            return new MvcHtmlString(HicomLabel(htmlHelper.Label(ComboName), LabelName).ToHtmlString() + htmlHelper.DropDownList(ComboName, Custom, string.IsNullOrEmpty(OptionLabel) ? null : OptionLabel, htmlAttributes));
+        }
+        catch (Exception ex)
+        {
+            ErrorLogManager.Log(ex);
+            return null;
+        }
+    }
+    /// <summary>
+    /// Kendoes the ComboBox for.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model.</typeparam>
+    /// <typeparam name="TProperty">The type of the property.</typeparam>
+    /// <param name="htmlHelper">The HTML helper.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="TableName">Name of the table.</param>
+    /// <param name="ValueFieldName">Name of the value field.</param>
+    /// <param name="TextFieldName">Name of the text field.</param>
+    /// <param name="OrderBy">The order by.</param>
+    /// <param name="SelectedValue">The selected value.</param>
+    /// <param name="ComboName">Name of the combo.</param>
+    /// <param name="LabelName">Name of the label.</param>
+    /// <param name="htmlAttributes">The HTML attributes.</param>
+    /// <param name="FilterBy">The filter by.</param>
+    /// <returns></returns>
+    public static MvcHtmlString KendoComboBoxFor<TModel, TProperty>(this HtmlHelper<TModel> htmlHelper,
+        Expression<Func<TModel, TProperty>> expression, String TableName, String ValueFieldName, String TextFieldName, String OrderBy, String SelectedValue, String ComboName, String LabelName = "", object htmlAttributes = null, String FilterBy = "")
+    {
+        SelectList Custom = new SelectList(LookupManager.ListGetByTable(TableName, ValueFieldName, TextFieldName, OrderBy), "Id", "Name", SelectedValue);
+        List<SelectListItem> comboBoxList = new List<SelectListItem>();
+        comboBoxList.AddRange(new SelectList(Custom.Items, Custom.DataTextField, Custom.DataValueField, Custom.SelectedValue));
+        //comboBoxList.Insert(0, new SelectListItem { Text = "", Value = "" });
+        var ComboBox = htmlHelper.Kendo().ComboBoxFor(expression);
+        ComboBox.Name(ComboName);
+        ComboBox.Filter(FilterType.Contains);
+        ComboBox.DataTextField("Value");
+        ComboBox.DataValueField("Text");
+        ComboBox.Suggest(true);
+        ComboBox.MinLength(1);
+        ComboBox.HtmlAttributes(htmlAttributes);
+        ComboBox.BindTo(comboBoxList);
+        ComboBox.Events(e =>
+        {
+            e.Change("GetFieldNames");
+        });
+        return MvcHtmlString.Create(HicomLabel(htmlHelper.LabelFor(expression), LabelName).ToHtmlString() + ComboBox.ToHtmlString());
+    }

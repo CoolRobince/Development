@@ -1,0 +1,398 @@
+public JsonResult IndexFieldAuditJson([DataSourceRequest] DataSourceRequest request)
+        {
+            string sortColumn = "AmendedDate";
+            string sortOrder = "DESC";
+            if (request != null && request.Sorts != null && request.Sorts.Count > 0)
+            {
+                sortColumn = request.Sorts[0].Member;
+                sortOrder = (request.Sorts[0].SortDirection == ListSortDirection.Ascending) ? "ASC" : "DESC";
+            }
+            var FieldAudit = Security.SecurityLicenceManager.ListFieldAuditGet(this.ReadOnlyContext);
+            int TotalCount = FieldAudit.Count;
+            var type = typeof(LicenceAuditRecord);
+            var sortProperty = type.GetProperty(sortColumn);
+            if (sortOrder == "ASC")
+                FieldAudit = FieldAudit.Skip(request.PageSize * (request.Page - 1)).Take(request.PageSize).OrderBy(p => sortProperty.GetValue(p, null)).ToList();
+            else
+                FieldAudit = FieldAudit.Skip(request.PageSize * (request.Page - 1)).Take(request.PageSize).OrderByDescending(p => sortProperty.GetValue(p, null)).ToList();
+            if (FieldAudit != null)
+            {
+                var result = new DataSourceResult()
+                {
+                    Data = FieldAudit,
+                    Total = TotalCount
+                };
+                //Return the result as JSON.
+                return Json(result, JsonRequestBehavior.AllowGet);
+            }
+            return Json("No Record Found");
+        }
+
+
+
+ @(Html.HicomGrid<Accent.Security.Data.SecurityObjectList>("SecurityObject", "IndexJson").Name("Grid")
+                .Columns(column =>
+                {
+                    column.Bound(a => a.SecurityObjectId).Width(40).Hidden();
+                    column.Bound(a => a.SecurityObjectName).Title("Name").Width(100);
+                    column.Bound(a => a.Category).Title("Category").Width(80);
+                    column.Bound(a => a.AdministratorObject).ClientTemplate("<span class='action-icons'>" +
+                            "# if (AdministratorObject) { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_check.png") + "' />" +
+                            "#}else { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_cross.png") + "' />" +
+                            "#}#" +
+                            "</span>").Title("Administrator object").Width(80);
+                    column.Bound(a => a.NonAdmininstratorObject).ClientTemplate("<span class='action-icons'>" +
+                            "# if (NonAdmininstratorObject) { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_check.png") + "' />" +
+                            "#}else { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_cross.png") + "' />" +
+                            "#}#" +
+                            "</span>").Title("Non-Administrator Object ").Width(100);
+                    column.Bound(a => a.ReleasedVersion).Title("Released Version").Width(100);
+                    column.Bound(a => a.Status).ClientTemplate("<span class='action-icons'>" +
+                            "# if (Status) { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_check.png") + "' />" +
+                            "#}else { #" +
+                                "<img src='" + Url.Content("~/Content/images/list_cross.png") + "' />" +
+                            "#}#" +
+                            "</span>").Title("Status").Width(50).HtmlAttributes(new { @class = "txt-center" }).Title("Status").Width(100);
+                    column.Bound(a => a.SecurityObjectId).ClientTemplate("<a id='Add' title='Add user' class='EditRecord' href='" +
+                        Url.Action("Detail", "SecurityObject") +
+                        "?id=#= SecurityObjectId #'></a>").Hidden();
+                })
+                )
+
+
+
+
+
+
+
+
+
+
+
+@(Html.HicomGrid<Accent.Security.Data.SecurityObjectPermissionList>("SecurityRoles", "SecurityObjectPermissionList", new { @RoleId =Model.SecurityRoleId  }, false, "").Name("GridObjectPermission")
+        .Columns(column =>
+        {
+            column.Bound(a => a.SecurityPermissionId).Width(40).Hidden();
+            column.Bound(a => a.SecurityObjectName).Title("Object Name").Width(80);
+            column.Bound(p => p.ReadPermission).Title("Read").Width(40)
+                .ClientTemplate("<input type='checkbox' #= ReadPermission ? \'checked=\"checked\"\' : '' # class='chkbox' label='Read' data-id='#= SecurityPermissionId #'  />");
+            column.Bound(p => p.AddPermission).Title("Add").Width(40)
+                .ClientTemplate("<input type='checkbox' #= AddPermission ? \'checked=\"checked\"\' : '' #  class='chkbox' label='Add' data-id='#= SecurityPermissionId #'/>");
+            column.Bound(p => p.EditPermission).Title("Edit").Width(40)
+                .ClientTemplate("<input class='chkbox' #= EditPermission ? \'checked=\"checked\"\' : '' #  type='checkbox'  label='Edit' data-id='#= SecurityPermissionId #'/>");
+            column.Bound(p => p.DeletePermission).Title("Delete").Width(40)
+                .ClientTemplate("<input class='chkbox' #= DeletePermission ? \'checked=\"checked\"\' : '' #  type='checkbox'  label='Delete' data-id='#= SecurityPermissionId #' />");
+            column.Bound(a => a.SecurityPermissionId)
+                    .ClientTemplate("<a id='Delete' title='Delete' Style='cursor:pointer' onclick='DeleteRecord(#=SecurityPermissionId #,\"Delete\")'><img src='" + Url.Content("~/Content/images/delete.png") + "' /></a>")
+                    .HeaderTemplate("<a id='Add' title='Delete' class='add-record'><span>&nbsp;Delete</span></a>").Sortable(false).Width(20);
+            column.Bound(a => a.SecurityPermissionId)
+                        .ClientTemplate("<a id='EditButton' onclick='EditRecord(#= SecurityPermissionId #)' title='Save' Style='cursor:pointer'><img src='" + Url.Content("~/Content/images/edit.png") + "' /></a>")
+                        .HeaderTemplate("<a id='Add' title='Save' class='add-record'><span>&nbsp;Save</span></a>").Sortable(false).Width(20);
+        })
+)
+<script>
+    function EditRecord(id) {
+        var newSelectedPermission = '';
+        $("input:checkbox[class=chkbox]:checked").each(function () {
+            if ($(this).attr('data-id') == id) {
+                var selecteddiv = $(this).attr('label');
+                if (typeof selecteddiv != "undefined") {
+                    if (newSelectedPermission.length == 0)
+                        newSelectedPermission = selecteddiv;
+                    else
+                        newSelectedPermission = newSelectedPermission + ';' + selecteddiv;
+                }
+            }
+        });
+        if (typeof selecteddiv != "undefined") {
+            if (newSelectedPermission.length == 0) {
+                newSelectedPermission = selecteddiv;
+            }
+            else {
+                newSelectedPermission = newSelectedPermission + ';' + selecteddiv;
+            }
+        }
+        UpdateObjectPermissions(id, newSelectedPermission);
+
+    }
+    function UpdateObjectPermissions(id, newSelectedPermission) {
+        jQuery.ajax({
+            type: "POST",
+            url: '@Url.Action("EditObjectPermission", "SecurityRoles")',
+            data: '{"Id":"' + id + '", "SelectedPermission":"' + newSelectedPermission + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                if (response == "Ok") {
+                    location.reload();
+                }
+            },
+            error: function (response) {
+            }
+        });
+    }
+
+    function DeleteRecord(id, type) {
+        if (type == "Delete") {
+            ConfirmationAction("Are you sure you want to delete this post?", "Delete", id, true);
+        }
+    }
+    function ConfirmationAction(message, title, id, status) {
+        bootbox.dialog({
+            message: message,
+            title: title,
+            buttons: {
+                danger: {
+                    label: "Yes",
+                    className: "btn btn-primary ConfirmDialogButtons",
+                    callback: function () {
+                        UpdatePermissionStatus(id, status);
+                    }
+                },
+                success: {
+                    label: "No",
+                    className: "btn btn-primary ConfirmDialogButtons",
+                }
+            }
+        });
+    }
+    function UpdatePermissionStatus(id) {
+        jQuery.ajax({
+            type: "POST",
+            url: '@Url.Action("RemovePermission", "SecurityRoles")',
+            data: '{"Id":"' + id + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                if (response == "Ok") {
+                    location.reload();
+                }
+            },
+            error: function (response) {
+            }
+        });
+    }
+
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+@using Kendo.Mvc.UI
+@model Accent.Security.Data.SecurityRoleQueryFilter
+<div class="modal-dialog modal-lg width70" role="document">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title txt-center" id="myModalLabel"></h4>
+        </div>
+        <div class="modal-body">
+            <div id="divPermission">
+                <div class="row induction-sessions">
+                    <div class="col-md-12">
+                        <div id="Permission" class="tab-container in">
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    @Html.HicomDropDownListFor(model => model.Category, "Category:", Accent.Security.StaticDropDownListItem.Category() as IEnumerable<SelectListItem>,"Select", new { @class = "form-control" })
+                                </div>
+                            </div>
+                            <div class="row">
+                                @(Html.HicomGrid<Accent.Security.Data.SecurityObjectList>("SecurityRoles", "SecurityObjectList").Name("GridObject")
+                                .Columns(column =>
+                                {
+                                    column.Bound(a => a.SecurityObjectId).Width(40).Hidden();
+                                    column.Bound(a => a.SecurityObjectName).Title("Security Objects").Width(100);
+                                    column.Bound(p => p.SecurityObjectId).Title("Category").Width(40)
+                                    .ClientTemplate("<input class='ObjectSel' type='checkbox' name='chkboxName'value='#= SecurityObjectId #' />");
+                                }))
+                            </div>
+                        </div>
+                        <div class="fr">
+                            <button class="btn btn-primary mt10" type="button" id="btnAdd" style="margin-right:10px;">
+                                <i class="fa fa-plus"></i>
+                                Save
+                            </button>
+                            <button type="button" class="btn btn-primary mt10" data-dismiss="modal"> Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //Associate  Category and Security Objects with User.
+    $(function () {
+        $("#btnAdd").click(function () {
+            var newSelectedCategory = '';
+            var newSelectedObject = '';
+            var multiSelectedVal = $("#Category").val();
+            $("input:checkbox[class=ObjectSel]:checked").each(function () {
+                var selecteddiv = $(this).attr('value');
+                if (typeof selecteddiv != "undefined") {
+                    if (newSelectedObject.length == 0)
+                        newSelectedObject = selecteddiv;
+                    else
+                        newSelectedObject = newSelectedObject + ';' + selecteddiv;
+                }
+            });
+            if (typeof multiSelectedVal != "undefined") {
+                if (newSelectedCategory.length == 0) {
+                    newSelectedCategory = multiSelectedVal;
+                }
+                else {
+                    newSelectedCategory = newSelectedCategory + ';' + multiSelectedVal;
+                }
+            }
+            if (newSelectedCategory.length > 0 && newSelectedObject.length > 0) {
+
+                SaveCategoryObjectsAssociations(newSelectedCategory, newSelectedObject);
+            }
+            else {
+                alert('Please select Category to associated with Security Objects')
+            }
+        });
+    });
+    function SaveCategoryObjectsAssociations(newSelectedCategory, newSelectedObject) {
+        jQuery.ajax({
+            type: "POST",
+            url: '@Url.Action("SaveUserCategoryObjectAssociation", "SecurityRoles")',
+            data: '{"RoleId":"' + @Model.RoleId + '", "SelectedCategory":"' + newSelectedCategory + '","SelectedObjects":"' + newSelectedObject + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                if (response == "Ok") {
+                    location.reload();
+                }
+            },
+            error: function (response) {
+            }
+        });
+    }
+
+    $('#Category').change(function () {
+        var DropDownValue = $("#Category").val();
+        jQuery.ajax({
+            type: "POST",
+            url: '@Url.Action("SecurityObjectList", "SecurityRoles")',
+            data: '{"Category":"' + DropDownValue + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                var grid = $("#GridObject").data("kendoGrid");
+                var dataSource = new kendo.data.DataSource({
+                    data: response.Data
+                });
+                grid.setDataSource(dataSource);
+            },
+            error: function (response) {
+            }
+        });
+
+    });
+</script>
+<style>
+    .k-multiselect:after {
+        content: "\25BC";
+        position: absolute;
+        top: 30%;
+        right: 25px;
+        font-size: 12px;
+        color: #333;
+    }
+    .k-multiselect {
+        background-color: #fff !important;
+    }
+</style>
+
+
+  [HttpPost]
+        public ActionResult SaveUserCategoryObjectAssociation(int RoleId, string SelectedCategory, string SelectedObjects)
+        {
+            var Category = SelectedCategory.Split(',');
+            var Objects = SelectedObjects.Split(';');
+            bool IsExist = false;
+            string errorMsg = "Already exist records :";
+            List<SecurityPermission> SecurityObjectPermisisonList = Security.SecurityRoleManager.SecurityObjectPermissionListById(this.ReadWriteContext, RoleId);
+            bool success = false;
+            List<SecurityPermission> SecurityObjectPermission = new List<Data.SecurityPermission>();
+            foreach (var ObjectId in Objects)
+            {
+                var OldRecords = SecurityObjectPermisisonList.Where(q => q.SecurityRoleId == RoleId && q.SecurityObjectId == Convert.ToInt32(ObjectId)).FirstOrDefault();
+                if (OldRecords != null)
+                {
+                    IsExist = true;
+                    errorMsg = errorMsg + " SecurityObjectId - " + OldRecords.SecurityObjectId + Environment.NewLine;
+                }
+                else if (!IsExist)
+                {
+                    SecurityPermission oSecurityPermission = new SecurityPermission();
+                    oSecurityPermission.SecurityRoleId = RoleId;
+                    oSecurityPermission.SecurityObjectId = Convert.ToInt32(ObjectId);
+                    SecurityObjectPermission.Add(oSecurityPermission);
+                }
+            }
+            if (!IsExist)
+                success = Security.SecurityRoleManager.UserObjectAssociation(this.ReadWriteContext, SecurityObjectPermission);
+            if (success)
+            {
+                TempData["ActionResult"] = Common.ActionSuccessResult;
+                TempData["ActionResultMessage"] = Common.SaveSuccessMessage;
+                return Json("Ok", JsonRequestBehavior.AllowGet);
+            }
+            else
+                return Json(errorMsg, JsonRequestBehavior.AllowGet);
+
+        }
+
+  public ActionResult EditObjectPermission(int Id, string SelectedPermission)
+        {
+            bool success = false;
+            SecurityPermission oSecurityPermission = Security.SecurityRoleManager.SecurityPermissionListById(this.ReadWriteContext, Id);
+            if (oSecurityPermission != null)
+            {
+                oSecurityPermission.AddPermission = SelectedPermission.Contains("Add") ? true : false;
+                oSecurityPermission.EditPermission = SelectedPermission.Contains("Edit") ? true : false; ;
+                oSecurityPermission.ReadPermission = SelectedPermission.Contains("Read") ? true : false; ;
+                oSecurityPermission.DeletePermission = SelectedPermission.Contains("Delete") ? true : false; ;
+            }
+            success = Security.SecurityRoleManager.EditPermission(this.ReadWriteContext, oSecurityPermission);
+            if (success)
+            {
+                TempData["ActionResult"] = Common.ActionSuccessResult;
+                TempData["ActionResultMessage"] = Common.SaveSuccessMessage;
+                return Json("Ok", JsonRequestBehavior.AllowGet);
+            }
+            else
+                return Json("Failed", JsonRequestBehavior.AllowGet);
+        }
+
+ @(Html.Kendo().MultiSelect()
+                                        .Name("ddlProfile")
+                                        .DataTextField("ProfileName")
+                                        .DataValueField("Id")
+                                        .Placeholder("--select value--")
+                                        .DataSource(source =>
+                                        {
+                                            source.Read(read =>
+                                            {
+                                                read.Action("GetUserProfile", "SecurityUser");
+                                            });
+                                        })
+                                        )
