@@ -1,0 +1,298 @@
+ [HttpPost]
+        public ActionResult SavePersonAssociation(int frameWorkId, string SelectedPersons)
+        {
+
+            StringBuilder xmlSb = new StringBuilder();
+            xmlSb.Append(@"<?xml version=""1.0""?><Framework>");
+            string[] sel = SelectedPersons.Split(';');
+            for (int i = 0; i < sel.Length; i++)
+            {
+                xmlSb.Append(@"<Staff> <FrameworkID>" + frameWorkId + " </FrameworkID><StaffID>" + sel[i] + "</StaffID><Active>" + 1 + "</Active></Staff>");
+            }
+            xmlSb.Append("</Framework>");
+            bool success = FrameWorkManager.FrameWorkPersonAssociation(this.ReadWriteContext, this.CurrentUser.SecurityUserId, xmlSb.ToString());
+            if (success)
+                return Json("Ok", JsonRequestBehavior.AllowGet);
+            else
+                return Json("Failed", JsonRequestBehavior.AllowGet);
+
+        }
+
+
+
+
+
+
+@model Intrepid.FirstDayReady.Data.FrameWorkQueryFilter
+@{
+    ViewBag.Title = "Person Association";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+<section>
+    @using (Html.BeginForm("PersonAssociation", "FrameWork", FormMethod.Post, new { id = "fmPersonsAssociation" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.ActivePage)
+        @Html.HiddenFor(m => m.FrameWorkId)
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="container">
+                    <div class="searchpanel SearchPanelForm">
+                        <div class="col-md-9">
+                            <div class="col-md-4">
+                                <div class="form-inline">
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.FirstName, new { @class = "form-control", @autofocus = "autofocus" }, "Forenames:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Surname, new { @class = "form-control", @autofocus = "autofocus" }, "Surname:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Email, new { @class = "form-control", @autofocus = "autofocus" }, "Email:")
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-inline">
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.GMCNumber, new { @class = "form-control", @autofocus = "autofocus" }, "GMC Number:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Specialty, new { @class = "form-control", @autofocus = "autofocus" }, "Specialty:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Site, new { @class = "form-control", @autofocus = "autofocus" }, "Site:")
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-inline">
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Grade, new { @class = "form-control", @autofocus = "autofocus" }, "Grade:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.Programme, new { @class = "form-control", @autofocus = "autofocus" }, "Programme:")
+                                    </div>
+                                    <div class="form-group">
+                                        @Html.HicomTextBoxFor(model => model.StartDate, new { @class = "form-control validate-datepicker", @autofocus = "autofocus" }, "Start Date:")
+                                    </div>
+                                </div>
+                            </div>
+                          
+                        </div>
+                        <div class="col-md-3 fr">
+                            <ul>
+                                <!--Buttons-->
+                                <li>
+                                    <button type="submit" id="btnSearch" title="Search">
+                                        <img src="@Url.Content("~/Content/images/search.png")" />Search
+                                    </button>
+                                </li>
+                                <li><button type="submit" onclick="return FilterClear();"><img src="@Url.Content("~/Content/images/clear.png")" />Clear</button></li>
+                            </ul>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+   <!-- agenda-details -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="container">
+                    <div class="grid-table mt20 mb20 ">
+                        <div class="row table-head sd-1">
+                            <div class="col-md-2 table-data ">
+                                <p>Forenames</p>
+                            </div>
+                            <div class="col-md-2 table-data ">
+                                <p>Surname</p>
+                            </div>
+                          
+                            <div class="col-md-3 table-data ">
+                                <p>Email</p>
+                            </div>
+                            <div class="col-md-3 table-data ">
+                                <p>GMC Number</p>
+                            </div>
+                            <div class="col-md-2 table-data ">
+                                <p>Select</p>
+                            </div>
+
+                        </div>
+                        @foreach (var item in Model.Persons)
+                                                    {
+                        <div class="row table-body" data-id="@item.StaffID">
+
+                            <div class="col-md-2 table-data ">
+                                <p>@item.Forenames &nbsp;</p>
+                            </div>
+                            <div class="col-md-2 table-data ">
+                                <p>@item.Surname &nbsp;</p>
+                            </div>
+                            <div class="col-md-3 table-data ">
+                                <p>@item.EmailNumber &nbsp;</p>
+                            </div>
+                            <div class="col-md-3 table-data ">
+                                <p>@item.GMCNumber &nbsp;</p>
+                            </div>
+                            <div class="col-md-2 table-data ">
+                                <p><input type="checkbox" class="personSel" /></p>
+                            </div>
+
+
+                        </div>
+                                                    }
+                    </div>
+                    @Html.Partial("~/Views/Shared/PagedList.cshtml", Model)
+                </div>
+                <br />
+            </div>
+        </div>
+            <div class="row">
+                <div class="col-md-12 txt-right">
+                    <div class="container">
+                        <a class="btn btn-primary mt10" id="btnAddPerson" href="javascript:;">
+                            <i class="fa fa-edit" aria-hidden="true"></i>
+                            Add to framework
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="clear"></div>
+
+    }
+
+</section>
+
+<script>
+    $(function () {
+        $(".validate-datepicker").datepicker({
+            dateFormat: 'mm/dd/yy'
+        });
+
+        $("#btnAddPerson").click(function () {
+            var newSelectedPerson = '';
+            $("input:checkbox[class=personSel]:checked").each(function () {
+                var sel_div = $(this).parents("div.table-body");
+                var selecteddiv = sel_div.attr('data-id');
+                if (typeof selecteddiv != "undefined") {
+                    if (newSelectedPerson.length == 0)
+                        newSelectedPerson = selecteddiv;
+                    else
+                        newSelectedPerson = newSelectedPerson + ';' + selecteddiv;
+                }
+            });
+            if (newSelectedPerson.length > 0) {
+                SavePersonAssociations(newSelectedPerson);
+            }else
+            {
+                alert('Please select person to associated with current frame work')
+            }
+        });
+    });
+    function SavePersonAssociations(newSelectedPerson) {
+        // Call save on drag change event on dashboard;
+        jQuery.ajax({
+            type: "POST",
+            url: '@Url.Action("SavePersonAssociation", "FrameWork")',
+            data: '{"frameWorkId":"' +  @Model.FrameWorkId + '", "SelectedPersons":"' + newSelectedPerson + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                window.location.href = '@Url.Action("Setup", "FrameWork", new { id = Model.FrameWorkId })';
+                                   },
+            error: function (response) {
+
+                    }
+                });
+    }
+</script>
+
+
+USE [Intrepid.FirstDayReady.Development]
+GO
+
+/****** Object:  StoredProcedure [dbo].[FrameWorkPersonAssociation]    Script Date: 6/26/2017 11:41:46 AM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+-- =============================================  
+
+-- DECLARE @xml XML = '<?xml version="1.0"?><Framework><Staff> <FrameworkID>3 </FrameworkID><StaffID>f6905433-be2a-4780-8cae-000576bd5d62</StaffID><Active>1</Active></Staff><Staff></Framework>'
+-- EXEC [FrameWorkPersonAssociation] @FrameWorkId, @xml
+-- =============================================  
+CREATE PROCEDURE [dbo].[FrameWorkPersonAssociation]
+(
+  @FrameworkID INT,
+  @xml XML
+)
+AS
+BEGIN
+      SET NOCOUNT ON;
+	  --IF EXISTS( SELECT TOP 1 StaffID FROM dbo.FrameWorkStaff WHERE FrameworkID = @FrameworkID)
+		 --DELETE FROM dbo.FrameWorkStaff WHERE FrameworkID = @FrameworkID
+   --   ELSE
+	  --   PRINT 'NO Record';
+
+	-- INSERT INTO FrameWorkStaff	
+	  INSERT INTO dbo.FrameWorkStaff (FrameworkID,  StaffID, Active)
+      SELECT
+      FrameworkStaff.value('(FrameworkID/text())[1]','INT') AS FrameworkID, --TAG
+      FrameworkStaff.value('(StaffID/text())[1]','NVARCHAR(40)') AS StaffID, --TAG
+	  FrameworkStaff.value('(Active/text())[1]','INT') AS Active --TAG
+      FROM
+      @xml.nodes('/Framework/Staff')AS TEMPTABLE(FrameworkStaff) 
+     
+END
+GO
+
+
+USE [Intrepid.FirstDayReady.Development]
+GO
+
+/****** Object:  StoredProcedure [dbo].[SessionAttendeeAssociation]    Script Date: 6/26/2017 11:41:58 AM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+--DECLARE @xml XML = '<?xml version="1.0"?><InductionSession><Attendee><FrameworkId>22</FrameworkId><StaffID>7b302e52-3520-4f32-9693-bba583ca706c</StaffID><InductionSessionID>146</InductionSessionID><Active>1</Active></Attendee><Attendee><FrameworkId>22</FrameworkId><StaffID>c4b1d0f7-23b8-4937-82a3-76ce13d2e64c</StaffID><InductionSessionID>146</InductionSessionID><Active>1</Active></Attendee><Attendee><FrameworkId>8</FrameworkId><StaffID>D6FDCE0E-84F4-476B-8D44-003C9D6C1129</StaffID><InductionSessionID>22</InductionSessionID><Active>1</Active></Attendee><Attendee><FrameworkId>1</FrameworkId><StaffID>D6FDCE0E-84F4-476B-8D44-003C9D6C1129</StaffID><InductionSessionID>22</InductionSessionID<Active>1</Active></Attendee></InductionSession>';
+--EXEC [SessionAttendeeAssociation]  @xml
+-- =============================================  
+
+CREATE PROCEDURE [dbo].[SessionAttendeeAssociation]
+(
+  @xml XML
+)
+AS
+BEGIN
+      SET NOCOUNT ON;
+	
+    ;with cte as
+ (
+ SELECT 
+ FS.FrameworkStaffID,
+	  Temp_Table.value('(InductionSessionID/text())[1]','INT') AS InductionSessionID, --TAG
+	  Temp_Table.value('(Active/text())[1]','INT') AS Active --TAG,
+      FROM
+      @xml.nodes('/InductionSession/Attendee')AS TEMPTABLE(Temp_Table) 
+	  INNER JOIN FrameworkStaff FS ON Temp_Table.value('(StaffID/text())[1]','Varchar(max)') = FS.StaffID AND Temp_Table.value('(FrameworkId/text())[1]','Varchar(max)') = FS.FrameworkID
+)
+INSERT INTO FrameWorkSessionAttendee (FrameworkStaffID, InductionSessionID, Active) 
+ SELECT  FrameworkStaffID, InductionSessionID, Active FROM CTE
+
+END
+GO
+
+
