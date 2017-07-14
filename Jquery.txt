@@ -1,0 +1,1421 @@
+@using Kendo.Mvc.UI
+@model Accent.FirstDayReady.Data.FrameWorkModel
+<section>
+    <div class="col-md-12 grid-table">
+        @using (Html.BeginForm(null, null, FormMethod.Post, new { id = "fmInductionSessionAgenda" }))
+            {
+            @Html.AntiForgeryToken()
+            @(Html.HicomGrid<Accent.FirstDayReady.Data.FrameworkInductionSessionModel>("FrameWork", "GetFrameworkInduction").Name("GridFrameworkInduction")
+                       .Events(e => e.Change("onChange"))
+                       .Selectable(selectable => selectable
+                        .Mode(GridSelectionMode.Single)
+                        .Type(GridSelectionType.Cell))
+
+                .Columns(column =>
+                {
+                    column.Bound(a => a.InductionSessionID).Width(40).Hidden();
+                    column.Bound(a => a.SessionName).Title("Session Name").Width(100);
+                    column.Bound(a => a.DateOfSession).Title("Date").ClientTemplate("#= kendo.toString(DateOfSession == null ? '' : DateOfSession, 'MM/dd/yyyy') #").Width(100);
+                    column.Bound(a => a.StartTime).Title("Start Time").ClientTemplate("#= StartTime == null ? 00 : StartTime.Hours # : #= StartTime == null ? 00 : StartTime.Minutes #  ").Width(100);
+                    column.Bound(a => a.EndTime).Title("End Time").ClientTemplate("#= EndTime == null ? 00 : EndTime.Hours # : #= EndTime == null ? 00 : EndTime.Minutes #  ").Width(100);
+                    column.Bound(a => a.Location).Title("Location").Width(100);
+                    column.Bound(a => a.NumberOfPlaces).Title("Places").Width(100);
+                    column.Bound(a => a.FrameWorkInductionSessionId)
+                        .ClientTemplate("<a id='Add' title='Delete' class='Session_delete ' href='javascript:;' data-id='#= FrameWorkInductionSessionId #'><img src='" + Url.Content("~/Content/images/delete.png") + "'/></a>").Title("Action").Width(100);
+
+                })
+            )
+            <div class="clear"></div>
+        }
+    </div>
+
+
+</section>
+
+<script>
+    function onChange(arg) {
+        var selected = $.map(this.select(), function (item) {
+            var tr = $(item).closest("tr");
+            var Id = tr.find('td:eq(0)').text();
+            var element = $(item).find('a');
+            if (element.hasClass("Session_delete")) {
+                eID = element.attr("data-id");
+                ConfirmationAction("Are you sure you want to delete this post?", "Delete", eID, false);
+            }
+            else {
+                var url = '@Url.Action("InductionSessionDetail", "InductionSession")' + "?id=" + Id;
+                MoveToPage(url);
+            }
+        });
+    }
+    function ConfirmationAction(message, title, id, status) {
+        bootbox.dialog({
+            message: message,
+            title: title,
+            buttons: {
+                danger: {
+                    label: "Yes",
+                    className: "btn btn-primary ConfirmDialogButtons",
+                    callback: function () {
+                        UpdateFrameWokSessionStatus(id, status);
+                    }
+                },
+                success: {
+                    label: "No",
+                    className: "btn btn-primary ConfirmDialogButtons",
+                }
+            }
+        });
+    }
+    function UpdateFrameWokSessionStatus(id, status) {
+        $.ajax({
+            type: "POST",
+            url: '@Url.Action("UpdateFrameWorkSessionStatus", "FrameWork")',
+            data: '{"Id":"' + id + '","IsDelete":"' + status + '"}',
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function (response) {
+                location.reload();
+            },
+            error: function (response) {
+                ShowMsg(response, false);
+            }
+        });
+    }
+</script>
+
+
+
+
+
+
+
+
+
+
+-------
+
+<script>
+    var $postUrl = '';
+    $(function () {
+        $("#btnSaveEvidence").click(function (e) {
+            var oFrameWork = {};
+            oFrameWork.Type = $("#EvidenceType").val();
+            oFrameWork.Section = $("#RequirementSection").val();
+            oFrameWork.FrameWorkId =@Model.FrameWorkId;
+            var $postUrl = "@Url.Action("SaveSectionEvidenceType", "Framework")";
+            $PostJson($postUrl, oFrameWork, function (msg) {
+                ShowMsg(msg, true); 
+                location.reload();
+            }, function (error) { ShowMsg(error, true); });
+        });
+    });
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Smooth scroll down from Home/Login page banner
+$(function () {
+    $(".datepicker").datepicker({
+        dateFormat: 'dd/mm/yy',
+    });
+    $('#latestnews').click(function () {
+        if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') && location.hostname == this.hostname) {
+            var target = $(this.hash);
+            target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+            if (target.length) {
+                $('html,body').animate({
+                    scrollTop: target.offset().top
+                }, 1000);
+                return false;
+            }
+        }
+    });
+});
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function SerializeObject(formArray) {
+    var Object = {};
+    $.each(formArray,
+        function (i, v) {
+            Object[v.name] = v.value;
+        });
+    return Object;
+}
+
+function SerializeFormData() {
+    var Data = {};
+    var DataArray = $('form').serializeArray();
+    $.each(DataArray,
+        function (i, v) {
+            Data[v.name] = v.value;
+        });
+
+    return Data;
+}
+
+function AppendToFormObject(FormData, formArray) {
+    $.each(formArray,
+        function (i, v) {
+            FormData.append(v.name, v.value);
+        });
+    return FormData;
+}
+
+function ToggleImg(val) {
+    if (val) {
+        $("#photoimg1").show();
+        $("#photoicon").hide();
+    }
+    else {
+        $("#photoimg1").hide();
+        $("#photoicon").show();
+    }
+}
+// Handle File Select
+function HandleFileSelect(evt, elementId, extwithcomma) {
+    var _img = document.getElementById(elementId);
+    var files = evt.target.files; // FileList object
+    var extension = files[0].name.split('.').pop().toLowerCase();
+    if (extwithcomma.toLowerCase().indexOf(extension) >= 0) {
+        var reader = new FileReader();
+        // Closure to capture the file information.
+        reader.onload = (function (theFile) {
+            return function (e) {
+                _img.src = e.target.result;
+
+                //Initiate the JavaScript Image object.
+                var image = new Image();
+                //Set the Base64 string return from FileReader as source.
+                image.src = e.target.result;
+                image.onload = function () {                   
+                    // min D : 420 X 525 and min file size 350 KB
+                    // max D : 630 X 788
+                    //Determine the Height and Width.
+                    var height = this.height;
+                    var width = this.width;
+                    var minSize = files[0].size / 1024;
+                    alert(minSize);
+                    if(minSize <= 350)
+                    {
+                        alert("Photograph size is less then required size.\n Minimum file size : 350 KB");
+                        $('#file').val('');
+                        return false;
+                    }
+                    else if (height < 420 && width < 525) {
+                        alert("Height and Width of photograph is less then required dimensions. \n Minimum Dimension of photograph : 420 X 525 and minimum file size : 350 KB");
+                        $('#file').val('')
+                        return false;
+                    }
+                    else if (height > 630 && width > 788) {
+                        alert("Height and Width of photograph is greater then required dimensions. \n Maximum Dimension : 630 X 788");
+                        $('#file').val('')
+                        return false;
+                    }
+                    else {
+                        return true;
+                    }
+                };
+
+            };
+        })(files[0]);
+        // Read in the image file as a data URL.
+        reader.readAsDataURL(files[0]);
+        ToggleImg(true);
+        return true;
+    }
+    else {
+        alert("Please select a valid file " + extwithcomma);
+        return false;
+    }
+}
+
+function $PostFile(postUrl, formData, fnSuccessCallBack, fnErrorCallBack) {
+    $.ajax({
+        type: "POST",
+        url: postUrl,
+        data: formData,//JSON.stringify(model),
+        processData: false,
+        contentType: false,
+        dataType: "json",
+        success: function (msg) {
+            if (fnSuccessCallBack != undefined) {
+                fnSuccessCallBack(msg);
+            }
+        },
+        error: function (xhr, errStatus, error) {
+            //alert(xhr.responseText);
+            if (fnErrorCallBack == undefined) {
+                alert(error + " " + errStatus)
+            } else {
+                fnErrorCallBack(error, errStatus);
+            }
+        }
+    });
+}
+
+function $PostJson(pUrl, data, fnSuccessCallBack, fnErrorCallBack) {
+    $.ajax({
+        type: "POST",
+        url: pUrl,
+        data: JSON.stringify(data),
+        dataType: 'json',
+        contentType: 'application/json; charset=utf-8',
+        success: function (msg) {
+            if (fnSuccessCallBack != undefined) {
+                fnSuccessCallBack(msg);
+            }
+        },
+        error: function (xhr, errStatus, error) {
+            //alert(xhr.responseText);
+            if (fnErrorCallBack == undefined) {
+                alert(error + " " + errStatus)
+            } else {
+                fnErrorCallBack(error, errStatus);
+            }
+        }
+    });
+}
+
+function HandleGridAction(arg) {
+    var selected = $.map(this.select(), function (item) {
+        window.location.href = $(item).find('.EditRecord')[0].href;
+    });
+}
+
+function ConfirmationBox(message, title, actionURL, onYesFunctionToExecute, onYesRenderSection) {
+    bootbox.dialog({
+        message: message,
+        title: title,
+        buttons: {
+            danger: {
+                label: "Yes",
+                className: "btn btn-primary ConfirmDialogButtons",
+                callback: function () {
+                    if (onYesFunctionToExecute != null && onYesFunctionToExecute != undefined && onYesFunctionToExecute != "") {
+                        onYesFunctionToExecute(actionURL, onYesRenderSection);
+                    }
+                    else if (location != null && location != undefined && location != "") {
+                        window.location.href = actionURL;
+                    }
+                }
+            },
+            success: {
+                label: "No",
+                className: "btn btn-primary ConfirmDialogButtons"
+            }
+        }
+    });
+}
+
+//Changes page upon changing page dropdown selection
+function JumpPage(currentDDL, FormID) {
+    //Get selected value of current Dropdown on current tab
+    var selectedval = $(currentDDL).val();
+
+    var txtCurrentPageID = '#txtCurrentPageID';
+
+    //FormID is used so that paging is applied on particular form if many are loaded i.e. On Tabs or Accordion panels
+    if (FormID != undefined && FormID != null && FormID != "") {
+        txtCurrentPageID = "#" + FormID + " " + txtCurrentPageID;
+    }
+
+    //Set selected value of current Dropdown list
+    $(txtCurrentPageID).val(selectedval);
+
+    //Refresh page to populate list with new records
+    PageRefresh(FormID);
+}
+
+//Code for paging
+function PageCommand(pg, FormID) {
+    var txtCurrentPageID = '#txtCurrentPageID';
+
+    //FormID is used so that paging is applied on particular form if many are loaded i.e. On Tabs or Accordion panels
+    if (FormID != undefined && FormID != null && FormID != "") {
+        txtCurrentPageID = "#" + FormID + " " + txtCurrentPageID;
+    }
+
+    $(txtCurrentPageID).val(pg);
+    if ($(txtCurrentPageID).val() > 0) {
+        PageRefresh(FormID);
+    }
+
+    return false;
+}
+
+function PageRefresh(FormID) {
+    var btnSearch = '#btnSearch';
+
+    //FormID is used so that paging is applied on particular form if many are loaded i.e. On Tabs or Accordion panels
+    if (FormID != undefined && FormID != null && FormID != "") {
+        btnSearch = "#" + FormID + " " + btnSearch;
+        btnSearch = jQuery(btnSearch);
+    }
+    else {
+        btnSearch = jQuery(btnSearch);
+        searchMode = 'direct';
+        //$('#h').val($('#Text').val());
+    }
+    btnSearch.click();
+}
+
+//------------------------END - PAGING---------------------------------
+
+//Condition to validate Numeric value
+function OnlyNumeric(e) {
+    var keyCode = e.keyCode || e.charCode;
+    if ((keyCode < 48 || keyCode > 57)) {
+        if (keyCode === 8 || keyCode === 46 || keyCode === 0 || keyCode === 37 || keyCode === 47 || keyCode === 39 || keyCode === 11 || keyCode === 9) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+}
+function ValidatePin(txt) {
+    var regex = /^(?:-?\d+|-?\d{1,3}(?:,\d{3})+)?(?:\.\d+)?$/;
+    var ok = regex.test($(txt).val());
+    if (!ok) {
+        $(txt).val('');
+        $(txt).attr("title", "Pin entered is incorrect must be numeric.");
+        $(txt).css("border", "1px solid red");
+    }
+    else {
+        if ($(txt).val().length <= 4) {
+            txt.setCustomValidity("Pin number must be 5 digit");// to change the custom message
+            $(".btn-primary").attr("disabled", "disabled");
+            $(txt).css("border", "1px solid red");
+        }
+        else {
+            txt.setCustomValidity('');
+            $(".btn-primary").removeAttr("disabled");
+        }
+    }
+}
+//Dialog box to confirm  - Before deleting any record 
+function deleteWithConfirm() {
+    if (window.confirm('Are you sure you want to delete this record?')) {
+        return true;
+    }
+    return false;
+}
+
+// Clear values from specified control 
+function FilterClear(formID) {
+
+    //Check if Form ID is provided, if it is then fields on particular form needs clearing
+    if (formID != undefined && formID != null && formID != "") {
+
+        //Get Form based on Form ID
+        oForm = document.forms[formID];
+
+        //Set default value for Active field which is a record status and should only show active records (Active = true) by default 
+        //Get DropDownList based on ID and set default value
+        ddlActive = oForm.elements["Active"];
+        ddlActive.value = "True";
+
+        //Get all Dropdown fields
+        Select = oForm.getElementsByTagName("select");
+        //Loop through each to set default value
+        for (var i = 0; i < Select.length; i++) {
+            //Set first item as default value; ignore all Dropdown list with ID Active,
+            //as default value for it is different and it is being set above
+            if (Select[i].id != "Active") {
+                Select[i].selectedIndex = 0;
+            }
+        };
+
+        //Get all input fields
+        Input = oForm.getElementsByTagName("input");
+        //Loop through each to set default value based on type
+        for (var i = 0; i < Input.length; i++) {
+            //Set default value for input type of Text
+            if (Input[i].type == "text") {
+                Input[i].value = "";
+            }
+                //Set default value for input type of Checkbox
+            else if (Input[i].type == "checkbox") {
+                Input[i].value = "false";
+            }
+        };
+    }
+        //Clear fields on all forms, as no Form ID is provided
+    else {
+        $("input[type=text]").val('');
+        $("textarea").val('');
+        $("#Language").val('');
+        $("#Area").text('Any');
+        $("#Subject").text('Any');
+        $("#Location").text('Any');
+        $("#Category").text('Any');
+        $("#Status").val('Any');
+        $("#SecurityUserId").text('Any');
+        $("input[type=checkbox]").val('false');
+        $("select").each(function () {
+            var id = "#" + this.id;
+            //Set default value for Active field which is a record status and should only show active records (Active = true) by default  
+            if (id == "#Active") {
+                $(id).val("True");
+            }
+            if (id !== "#Take" && id !== "#Active") {
+                $(id).val($(id + " option:first").val());
+            }
+        });
+        //Addded for Kendo DropDownList on Filter for Audit,
+        //if causing other issues and need removing please find other way to clear hidden text on filter first
+        $("input[type=hidden]").val('');
+    }
+
+    return true;
+}
+
+//Method used for navigation to given url page
+function MoveToPage(url) {
+    window.location.href = $.trim(url);
+    return false;
+}
+
+// Code to open Pop Up window with Jquery verison [jquery-2.2.3]
+function OpenPopUp(url, width, height) {
+    $("#DivPopup").dialog({
+        autoOpen: true,
+        position: { my: "center", at: "top+350", of: window },
+        width: width,
+        height: height,
+        modal: true,
+        open: function () {
+            $(this).load(url);
+            $("#divmask").show();
+        }
+    });
+    return false;
+}
+
+
+//To close Pop Up window 
+function closePopup() {
+    $("#DivPopup").dialog('close');
+    $("#divmask").hide();
+}
+
+//this is to add the verfication token to the data passed to a controller method.
+//example usage  data: addRequestVerificationToken( {'SelectedApplicants': ids}) 
+//data is the data parameter in a standard ajax call
+function addRequestVerificationTokenToAJAXCall(data) {
+    data.__RequestVerificationToken = $('input[name=__RequestVerificationToken]').val();
+    return data;
+};
+
+//Viewing Reports 
+function PreviewReport(ReportName) {
+    var url = "../ReportViewer/ReportViewer.aspx?ReportName=" + ReportName;
+    var iMyWidth;
+    var iMyHeight;
+    var windowWidth = parseInt(window.screen.width) - parseInt((window.screen.width / 100) * 50)
+    var windowHeight = parseInt(window.screen.height) - parseInt((window.screen.height / 100) * 50)
+    //half the screen width minus half the new window width (plus 5 pixel borders).
+    iMyWidth = (window.screen.width / 2) - (windowWidth / 2);
+    //half the screen height minus half the new window height (plus title and status bars).
+    iMyHeight = (window.screen.height / 2) - (windowHeight / 2);
+    //Open the window.
+    var win2 = window.open(url, ReportName, "status=no,height=" + windowHeight + ",width=" + windowWidth + ",resizable=yes,left=" + iMyWidth + ",top=" + iMyHeight + ",screenX=" + iMyWidth + ",screenY=" + iMyHeight + ",toolbar=no,menubar=no,scrollbars=yes,location=no,directories=no");
+    win2.focus();
+}
+
+function ValidateForm(formid, ctrltovalidate, msg) {
+    $("#divmsg").show();
+    $("#errormsg").text(msg);
+}
+function ValidateFramwork(formid, ctrltovalidate, msg) {
+    $(ctrltovalidate).attr("title", msg);
+    $(ctrltovalidate).css("border", "1px solid red");
+}
+function ResetValidationFramwork(formid, ctrltovalidate) {
+    $(ctrltovalidate).removeAttr("title");
+    $(ctrltovalidate).css("border", "1px solid #b6b6b6");
+}
+
+function HideMsg() {
+    $("#divmsg").hide();
+}
+function ShowMsg(msg, issucess) {
+    if (issucess) {
+        // remove alert-danger class
+        $("#divcls").removeClass("alert-danger")
+        $("#divcls").addClass("alert-success");
+    }
+    else {
+        $("#divcls").addClass("alert-danger");
+    }
+    $("#divmsg").show();
+    $("#errormsg").text(msg);
+}
+
+function checkEmail(email) {
+    var regExp = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}$/
+    return regExp.test(email);
+}
+
+//********************** START - Bootstrap Accordion State ******************************
+//Set cookie to maintain Bootstrap Accordion state on postback
+function setCookie(sectionName) {
+    var lastState = getCookie(sectionName);
+    if (lastState == "" || lastState == "off") {
+        document.cookie = sectionName + "=on";
+    }
+    else {
+        document.cookie = sectionName + "=off";
+    }
+}
+
+//Get saved cookie to maintain Bootstrap Accordion state on postback
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1);
+        if (c.indexOf(name) != -1) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
+//Set Bootstrap Accordion state on postback
+function setState(panelName, buttonName) {
+
+    //Declare variables
+    var detailPanelClass = "";
+    var toggleButtonClass = "";
+
+    if (getCookie(panelName) == "" || getCookie(panelName) == "off") {
+        //Get class for panel in collapsed mode
+        detailPanelClass = "tab-container collapse";
+
+        //Get class for toggle button in collapsed mode
+        toggleButtonClass = "collapsed";
+    }
+    else {
+        //Get class for panel in expanded mode
+        detailPanelClass = "tab-container in";
+
+        //Get class for toggle button in expanded mode
+        toggleButtonClass = "";
+    }
+
+    //Set class of panel
+    document.getElementById(panelName).className = detailPanelClass;
+
+    //Set class of toggle button
+    document.getElementById(buttonName).className = toggleButtonClass;
+}
+//********************** END - Bootstrap Accordion State ******************************
+
+//********************** START - Confirm Popup and AJAX Partial Render ******************************
+
+//Render HTML (populated by provided URL) partially on provided target (RenderSection)
+function AJAXPartialRender(ActionURL, RenderSection) {
+    $.ajax({
+        type: "POST",
+        url: ActionURL,
+        dataType: "html",
+        success: function (data, textStatus, jqXHR) {
+            $(RenderSection).html(data);
+        }
+    });
+}
+
+//Confirm action on popup and render partial view
+function ConfirmActionAndAJAXPartialRender(Action, ActionURL, ActionMessage, FunctionToExecute, RenderSection) {
+
+    //Set confirm message
+    ActionMessage = ConfirmMessageSet(Action, ActionMessage);
+
+    //Populate confirm box
+    ConfirmationBox(ActionMessage, Action, ActionURL, FunctionToExecute, RenderSection);
+}
+
+//Confirm action on popup and render partial view
+function ConfirmMessageSet(Action, ActionMessage) {
+    if (ActionMessage == undefined || ActionMessage == null || ActionMessage == "") {
+        if (Action == "Delete") {
+            ActionMessage = "Are you sure you want to delete?";
+        }
+        else if (Action == "Recover") {
+            ActionMessage = "Are you sure you want to recover?";
+        }
+    }
+
+    if (ActionMessage == undefined || ActionMessage == null) {
+        ActionMessage = "";
+    }
+    return ActionMessage;
+}
+
+//Show success/failure message on data action (Delete, Recover, Save)
+function SuccessFailureMessageShow(ActionResult, ActionResultMessage) {
+    if (ActionResultMessage != undefined && ActionResultMessage != null && ActionResultMessage.length > 1) {
+        if (ActionResult == "Failed") {
+            ShowMsg(ActionResultMessage, false);
+        }
+        else {
+            ShowMsg(ActionResultMessage, true);
+        }
+    }
+}
+
+//Proceed to close popup
+function ClosePopupProceed(PopupWindowID) {
+
+    //Check if popup window ID is provided
+    if (PopupWindowID == undefined || PopupWindowID == null || PopupWindowID == "") {
+        //ID not provided; set default one
+        PopupWindowID = "PopupWindow";
+    }
+
+    //Call click event of Popup to close popup window
+    $("#" + PopupWindowID + " .close").click();
+}
+
+//Refresh parent page
+function ParentPageRefresh(ChildFormID, ParentFormID) {
+
+    //Check whether child form exist based on child form ID
+    if (ChildFormID != undefined && ChildFormID != null && ChildFormID != "") {
+
+        //Get child form based on child form ID
+        ChildForm = document.forms[ChildFormID];
+
+        //Get Submit Type on child form
+        hdnSubmitType = ChildForm.elements["hdnSubmitType"];
+        var SubmitType = hdnSubmitType.value;
+
+        //Check whether submit type is Save
+        if (SubmitType != undefined && SubmitType != null && SubmitType != ""
+            && (SubmitType == "Save" || SubmitType == "SaveBack")) {
+
+            //If submit type was Save, check whether parent form exist based on parent form ID
+            if (ParentFormID != undefined && ParentFormID != null && ParentFormID != "") {
+
+                //Get parent form based on parent form ID
+                ParentForm = document.forms[ParentFormID];
+
+                //Get Search button based on parent form
+                btnSearch = ParentForm.elements["btnSearch"];
+
+                //Call click event of Search button on parent form to refresh parent page
+                btnSearch.click();
+            }
+        }
+    }
+}
+
+//********************** END - Confirm Popup and AJAX Partial Render ******************************
+
+
+
+@{
+    List<SelectListItem> EvidenceType = new List<SelectListItem>();
+    EvidenceType.Add(new SelectListItem { Text = "ID Address", Value = "IDAddressEvidence" });
+    EvidenceType.Add(new SelectListItem { Text = "Occupational Health Check", Value = "OccupationalHealthCheckEvidence" });
+    EvidenceType.Add(new SelectListItem { Text = "Photographs", Value = "PhotographEvidence" });
+    EvidenceType.Add(new SelectListItem { Text = "Police Check", Value = "PoliceCheckEvidence" });
+    EvidenceType.Add(new SelectListItem { Text = "Right To Work", Value = "RightToWorkEvidence" });
+}
+<div class="modal-dialog" role="document">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title" id="myModalLabel">Save Evidence</h4>
+        </div>
+        <div class="modal-body">
+            <div id="evidenceSelection">
+                <div class="form-group">
+                    <label>Evidence Type: </label>
+                    @Html.DropDownList("EvidenceType", EvidenceType as IEnumerable<SelectListItem>)
+                </div>
+                <div id="idMainForm">
+                    loading....
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <span class="fl"><button type="button" class="btn-modal" data-dismiss="modal"> Cancel</button> </span>
+            <span class="fr"><a class="btn-modal" id="btnSaveEvidence" style="cursor:pointer;">Save </a></span>
+        </div>
+
+    </div>
+</div>
+<script>
+    var $postUrl = '';
+    $(function () {
+        // on load
+        SwitchForm('IDAddressEvidence');
+        $("#EvidenceType").change(function () {
+            $("#idMainForm").html("Loading.....");
+            var type = $(this).val();
+            SwitchForm(type);
+        });
+        $("#btnSaveEvidence").click(function (e) {
+            if (!CheckValidation())
+            {
+                e.preventDefault();
+            }
+            else
+            {
+                var formData = new FormData();
+                var model = $("#idMainForm :input").serializeArray();//SerializeObject();
+                formData.append("file", document.getElementById("file").files[0]);
+                formData = AppendToFormObject(formData, model);
+                var fileName = $("#Surname").val() + "_" + $("#GMCNumber").val() + "_" + getRandomInt(1000, 99999);
+                formData.append("fileName", fileName);
+                $PostFile($postUrl, formData, function (msg) {
+                    $("button.close").trigger('click');
+                    location.reload();
+                },
+                function (error) {
+                    alert(error);
+                }
+                );
+            }
+        });
+    });
+    function SwitchForm(type)
+    {
+        $postUrl = '';
+        var framkstaffID = $("#FrameworkStaffID").val();
+        switch (type) {
+            case 'IDAddressEvidence':
+                $postUrl = "@Url.Action("SaveIDAddressEvidence", "Person")";
+                $("#idMainForm").load('@Url.Action("AddEditIDAddressEvidence", "Person")' + "?id=0&FrameworkStaffID=" + framkstaffID);
+                break;
+            case 'OccupationalHealthCheckEvidence':
+                $postUrl = "@Url.Action("SaveOccupationalHealthCheckEvidence", "Person")";
+                $("#idMainForm").load('@Url.Action("AddEditOccupationalHealthCheckEvidence", "Person")' + "?id=0&FrameworkStaffID=" + framkstaffID);
+                break;
+            case 'PhotographEvidence':
+                $postUrl = "@Url.Action("SavePhotographEvidence", "Person")";
+                $("#idMainForm").load('@Url.Action("AddEditPhotographEvidence", "Person")' + "?id=0&FrameworkStaffID=" + framkstaffID);
+                break;
+            case 'PoliceCheckEvidence':
+                $postUrl = "@Url.Action("SavePoliceCheckEvidence", "Person")";
+                $("#idMainForm").load('@Url.Action("AddEditPoliceCheckEvidence", "Person")' + "?id=0&FrameworkStaffID=" + framkstaffID);
+                break;
+            case 'RightToWorkEvidence':
+                $postUrl = '';
+                $("#idMainForm").load('@Url.Action("AddEditRightToWorkEvidence", "Person")' + "?id=0&FrameworkStaffID=" + framkstaffID);
+                break;
+        }
+    }
+    function CheckValidation() {
+        if ($('#file').val() != "") {
+            return true;
+        }
+        else {
+            alert('Document is required.')
+            $('#file').css("border", "1px solid red");
+            return false;
+        }
+    }
+</script>
+
+
+@using Kendo.Mvc.UI
+@model Accent.FirstDayReady.Data.FrameWorkModel
+@{
+    ViewBag.Title = "First Day Ready - Framework - Setup";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<section>
+    @using (Html.BeginForm("Setup", "FrameWork", null, FormMethod.Post, new { id = "fmFrameWork", enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken();
+        @Html.HiddenFor(x => x.FrameWorkId)
+        <div class="row ready-framwork">
+            <div class="col-md-12">
+                <div class="container">
+                    <div class="row user-info">
+                        <div class="tab-wrapper">
+                            <div class="tab-header dis-none">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                    </div>
+                                    <div class="col-md-4   header">
+                                        <span><i class="fa fa-plus"></i>&nbsp;Framework</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="col-md-9  add-record">
+                                            <span><a href="#">&nbsp;</a></span>
+                                        </div>
+                                        <div class="col-md-offset-4 collapse-icon">
+                                            <a data-toggle="collapse" href="#IdFrameWork"><i class="fa collapse-icon-image"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="IdFrameWork" class="tab-container in">
+                                <div class="row">
+                                    <div class="fr">
+                                        <a class="btn btn-primary mt10" id="btnDraft" style="margin-right:10px;">
+                                            <i class="fa fa-save"></i>
+                                            Draft
+                                        </a>
+                                        <button class="btn btn-primary mt10" type="submit" id="btnSave" style="margin-right:10px;">
+                                            <i class="fa fa-save"></i>
+                                            Save
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row">
+                                            <div class="col-md-12"><span><strong>'BOLD'</strong></span> Denotes mandatory field</div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12 form-group">
+                                                @Html.HicomTextBoxFor(model => model.Name, new { @class = "form-control", @autofocus = "autofocus", @required = "required", @id = "txtName" }, "Name:")
+                                                @Html.ValidationMessageFor(model => model.Name)
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                @Html.HicomTextBoxFor(model => model.CohortStartDate, new { @class = "form-control validate-datepicker", @autofocus = "autofocus", @required = "required" }, "Cohort Start Date:")
+                                                @Html.ValidationMessageFor(model => model.CohortStartDate)
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <div class="form-inline">
+                                                    @Html.HicomTextBoxFor(model => model.CohortEndDate, new { @class = "form-control validate-datepicker", @autofocus = "autofocus", @required = "required" }, "Cohort End Date:")
+                                                    @Html.ValidationMessageFor(model => model.CohortEndDate)
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                @Html.HicomTextBoxFor(model => model.Year, new { @class = "form-control", @autofocus = "autofocus", @readonly = "readonly" }, "Year:")
+                                                @Html.ValidationMessageFor(model => model.Year)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 ">
+                                        <div class="form-group mt15">
+                                            @Html.HicomTextAreaFor(model => model.Note, new { @class = "form-control hr-notes", @autofocus = "autofocus" }, "Notes:")
+                                            @Html.ValidationMessageFor(model => model.Note)
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="clear"></div>
+                    <br />
+                </div>
+            </div>
+        </div>
+    }
+    <!-- Education and Training Requirements -->
+    <div class="row EducationAndTrainingRequirements">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4  header">
+                                <span><i class="fa fa-plus"></i>&nbsp;Education and Training Requirements</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="#" id="EducationTrainingModal" data-toggle="modal" data-target="#newModal" data-value="EducationandTraining">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#EducationAndTrainingRequirements" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="EducationAndTrainingRequirements" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row ">
+                                @(Html.HicomGrid<Accent.FirstDayReady.Data.FrameWork.FrameWorkRequirementModel>("FrameWork", "EducationRequirements").Name("GridEducationRequirement")
+                                   .Columns(column =>
+                                   {
+                                       column.Bound(a => a.EvidenceTypeId).Width(40).Hidden();
+                                       column.Bound(a => a.EvidenceType).Title("Evidence Type").Width(100);
+                                   })
+                                )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <br />
+            </div>
+        </div>
+    </div>
+
+    <!-- HR Requirements -->
+    <div class="row HRRequirements">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4   header">
+                                <span><i class="fa fa-plus"></i>&nbsp;HR Requirements</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="#" id="HRRequirementsModal" data-toggle="modal" data-target="#newModal" data-value="HRRequirements">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#HRRequirements" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="HRRequirements" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row">
+
+                                @(Html.HicomGrid<Accent.FirstDayReady.Data.FrameWork.FrameWorkRequirementModel>("FrameWork", "HRRequirements").Name("GridHRRequirement")
+                                   .Columns(column =>
+                                   {
+                                       column.Bound(a => a.EvidenceTypeId).Width(40).Hidden();
+                                       column.Bound(a => a.EvidenceType).Title("Evidence Type").Width(100);
+                                   })
+                                )
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <br />
+            </div>
+        </div>
+    </div>
+    <!-- Smart Card Requirements -->
+    <div class="row SmartCardRequirements">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4   header">
+                                <span><i class="fa fa-plus"></i>&nbsp;Smart Card Requirements</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="#" id="SmartCardModal" data-toggle="modal" data-target="#newModal" data-value="SmartCardRequirements">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#SmartCardRequirements" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="SmartCardRequirements" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="row">
+                                        @(Html.HicomGrid<Accent.FirstDayReady.Data.FrameWork.FrameWorkRequirementModel>("FrameWork", "SmartCardRequirements").Name("GridSmartCardRequirement")
+                                           .Columns(column =>
+                                           {
+                                               column.Bound(a => a.EvidenceTypeId).Width(40).Hidden();
+                                               column.Bound(a => a.EvidenceType).Title("Evidence Type").Width(100);
+                                           })
+                                        )
+                                    </div>
+                                </div>
+                                <div class="col-md-6 ">
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <br />
+            </div>
+        </div>
+    </div>
+
+    <!-- Induction Session -->
+    <div class="row InductionSession">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4   header">
+                                <span><i class="fa fa-plus"></i>&nbsp;Induction Sessions</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="javascript:;" id="InductionModal" data-toggle="modal" data-target="#newInductionModal">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#InductionSession" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="InductionSession" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="row">
+                                        <div class="col-md-12 form-group">
+                                            <div class="demo-section k-content">
+                                                @(Html.Kendo().MultiSelectFor(model => model.InductionSessionGet)
+                                    .Name("ddlSession")
+                                    .DataTextField("SessionName")
+                                    .DataValueField("InductionSessionID")
+                                    .Placeholder("--Select Value--")
+                                    .DataSource(source =>
+                                    {
+                                        source.Read(read =>
+                                        {
+                                            read.Action("GetSession", "Framework", new { id = Model.FrameWorkId });
+                                        })
+                                        .ServerFiltering(false);
+                                    })
+                                                )
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8 ">
+                                    <a class="btn btn-primary" id="btnAddInduction" href="javascript:;">
+                                        <i class="fa fa-edit" aria-hidden="true"></i>
+                                        Add to framework
+                                    </a>
+                                </div>
+                            </div>
+                            <div>
+                                @{Html.RenderAction("GetInductionAssociation", "FrameWork", new { frameworkId = Model.FrameWorkId });}
+                                <div class="clear"></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <br />
+            </div>
+        </div>
+    </div>
+    <!-- Documents -->
+    <div class="row Documents">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4 header">
+                                <span><i class="fa fa-file"></i>&nbsp;Documents</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="javascript:;" id="DocumentModal" data-toggle="modal" data-target="#DocumentUploadModal">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#documents" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="documents" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row plr15">
+                                <div class="fr"><a href="javascript:;" id="Downloadbtn" class="btn btn-primary"><span><i class="fa fa-cloud-download" aria-hidden="true"></i>&nbsp;Download selected files</span></a></div>
+                                <br />
+                                <div class="row ">
+                                    <div class="col-md-12">
+                                        @{Html.RenderAction("GetDocument", "FrameWork");}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clear"></div>
+                    <br />
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Starters -->
+    <div class="row Starters">
+        <div class="col-md-12">
+            <div class="container">
+                <div class="tab-wrapper">
+                    <div class="tab-header">
+                        <div class="row">
+                            <div class="col-md-4">
+                            </div>
+                            <div class="col-md-4   header">
+                                <span><i class="fa fa-plus"></i>&nbsp;Starters</span>
+                            </div>
+                            <div class="col-md-4 ">
+                                <div class="col-md-9 add-record">
+                                    <span class="dis-none"><i class="fa fa-plus"></i><a href="@Url.Action("PersonAssociation", "FrameWork", new { id=Model.FrameWorkId})">&nbsp;ADD NEW RECORD</a></span>
+                                </div>
+                                <div class="collapse-icon">
+                                    <a data-toggle="collapse" href="#Starters" class="collapsed"><i class="fa collapse-icon-image"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="Starters" class="tab-container collapse">
+                        <div class="tab-sub-container ">
+                            <div class="row ">
+                                @(Html.HicomGrid<Accent.Portal.Interface.Service.Person>("FrameWork", "FrameworkStarters").Name("GridFrameworkStarters").
+                                Events(e => e.Change("HandleGridAction"))
+                               .Selectable(x => x.Mode(GridSelectionMode.Single))
+                               .Columns(column =>
+                               {
+                                   column.Bound(a => a.StaffID).Width(40).Hidden();
+                                   column.Bound(a => a.Forenames).Title("Forenames").Width(100);
+                                   column.Bound(a => a.Surname).Title("Surname").Width(100);
+                                   column.Bound(a => a.EmailNumber).Title("Email").Width(100);
+                                   column.Bound(a => a.StaffID).ClientTemplate("<a class='EditRecord' href='" + Url.Action("PersonEvidence", "Person", new { id = "#=StaffID #" }) + "'/>").Hidden();
+                               })
+                                )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <br />
+            </div>
+        </div>
+    </div>
+</section>
+<div class="clear"></div>
+
+<!-- For New Modal Data Entry modal -->
+<div class="modal fade" id="newModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+</div>
+<div class="modal fade" id="newInductionModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+</div>
+<div class="modal fade" id="DocumentUploadModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+</div>
+<script>
+
+    $(function () {
+        var nice = $("html").niceScroll();  // The document page (body)
+        $("#div1").html($("#div1").html() + ' ' + nice.version);
+        $("#boxscroll").niceScroll({}); // First scrollable DIV
+        $(function () {
+            $(".validate-datepicker").datepicker({
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                onClose: function (dateText, instance) {
+                    var date,
+                        _dateFormat = instance.settings.dateFormat || $.datepicker._defaults.dateFormat,
+                        _settings = instance.settings;
+                    try {
+                        date = $.datepicker.parseDate(_dateFormat, dateText, _settings);
+                    }
+                    catch (e) {
+                        alert("Date format is not valid");
+                    }
+                    if (date) {
+                        $(this).val($.datepicker.formatDate(_dateFormat, date, _settings));
+                    }
+                    else {
+                        $(this).val("");
+                    }
+                }
+            });
+        });
+        //Show success/failure message on data action (Delete, Recover, Save)
+        SuccessFailureMessageShow("@TempData["ActionResult"]", "@TempData["ActionResultMessage"]");
+
+        //Save framework as draft.
+        $("#btnDraft").click(function () {
+            DraftFrameWork();
+        });
+
+        //Check framework name is already exist.
+        var IsExistFrameWork = false;
+        $("#txtName").blur(function () {
+            if ($("#txtName").val().length > 0) {
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("CheckFrameWorkName", "FrameWork", "FrameworkID")",
+                    data: '{"FrameWork":"' + $("#txtName").val() + '", "FrameworkID":"' +  @Model.FrameWorkId + '"}',
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (response) {
+                        if (response == true) {
+                            IsExistFrameWork = true;
+                            ValidateFramwork("#fmFrameWork", "#txtName", "Frame Work name is already exist")
+                        }
+                        else {
+                            IsExistFrameWork = false;
+                            ResetValidationFramwork("#fmFrameWork", "#txtName")
+                        }
+                    },
+                    error: function (response) {
+                    }
+                });
+            }
+        });
+
+        //Save/Update framework
+        $("#btnSave").click(function (e) {
+            var str = $("#CohortStartDate").val(); //Year, Month, Date
+            var end = $("#CohortEndDate").val(); //Year, Month, Date
+
+            var date = str.substring(0, 2);
+            var month = str.substring(3, 5);
+            var year = str.substring(6, 10); 
+
+            var endDate = end.substring(0, 2);
+            var endMonth = end.substring(3, 5);
+            var endYear = end.substring(6, 10);
+
+            var startDate = new Date(year, month - 1, date);
+            var endDate = new Date(endYear, endMonth - 1, endDate);
+
+            if (startDate > endDate) {
+                alert("End date should be greater than start date.")
+                return false;
+            }
+            if (!IsExistFrameWork && $("#txtName").val().length > 0) {
+                $("form").submit();
+            }
+            else {
+                e.preventDefault();
+            }
+        });
+        title = "Frame Work name is already exist"
+        $('#CohortStartDate').change(function () {
+            var date = $(this).datepicker('getDate')
+            $('#Year').val(date.getFullYear())
+        });
+
+        //Associate multiple session with framework.
+        $(function () {
+            var used = $("#ddlSession").data("kendoMultiSelect");
+            $("#btnAddInduction").click(function () {
+                var newSelectedSession = '';
+                var multiSelectedVal = $("#ddlSession").data("kendoMultiSelect").value();
+                if (typeof multiSelectedVal != "undefined") {
+                    if (newSelectedSession.length == 0)
+                        newSelectedSession = multiSelectedVal;
+                    else
+                        newSelectedSession = newSelectedSession + ';' + multiSelectedVal;
+                }
+                if (newSelectedSession.length > 0) {
+
+                    SaveInductionAssociations(newSelectedSession);
+                } else {
+                    alert('Please select session to associated with current frame work')
+                }
+            });
+
+        });
+        function SaveInductionAssociations(newSelectedSession) {
+            // Call save on drag change event on dashboard;
+            jQuery.ajax({
+                type: "POST",
+                url: '@Url.Action("SaveInductionAssociation", "FrameWork")',
+                data: '{"frameWorkId":"' +  @Model.FrameWorkId + '", "SelectedSession":"' + newSelectedSession + '"}',
+                dataType: 'json',
+                contentType: 'application/json; charset=utf-8',
+                success: function (response) {
+                    window.location.href = '@Url.Action("Setup", "FrameWork", new { id = Model.FrameWorkId })';
+                },
+                error: function (response) {
+
+                }
+            });
+        }
+        //Download multiple files
+        $("#Downloadbtn").click(function () {
+            var newSelectedfile = '';
+            $("input:checkbox[class=documentSel]:checked").each(function () {
+                if ($(this).is(":checked")) {
+                    var id = $(this).val();
+                    if (newSelectedfile.length == 0)
+                        newSelectedfile = id;
+                    else
+                        newSelectedfile = newSelectedfile + ',' + id;
+                }
+            });
+            if (newSelectedfile.length > 0) {
+                DownloadMultiplefile(newSelectedfile);
+            }
+
+            else {
+                alert('Please select multiple files to download')
+            }
+        });
+
+        function DownloadMultiplefile(newSelectedfile) {
+            var obj = {
+                DocumentIds: newSelectedfile
+            }
+            var $pUrl = "@Url.Action("DownloadSelectedItem", "Document")";
+            $PostJson($pUrl, obj, function (msg) { }, function (error) { ShowMsg(error, true); });
+        }
+        function DraftFrameWork() {
+            var oFrameWork = {};
+            oFrameWork.Name = $("#txtName").val();
+            oFrameWork.CohortStartDate = $("#CohortStartDate").val();
+            oFrameWork.CohortEndDate = $("#CohortEndDate").val();
+            oFrameWork.FrameWorkId = '@Model.FrameWorkId';
+            oFrameWork.Year = $("#Year").val();
+            oFrameWork.Note = $("#Note").val();
+            var $postUrl = "@Url.Action("DraftSetup", "FrameWork")";
+            $PostJson($postUrl, oFrameWork, function (msg) { ShowMsg(msg, true); }, function (error) { ShowMsg(error, true); });
+        }
+    });
+    $("#EducationTrainingModal, #HRRequirementsModal, #SmartCardModal ").click(function () {
+        $("#newModal").load('@Url.Action("Evidence", "FrameWork")' + "?id=@Model.FrameWorkId" + "&type=" + $(this).attr("data-value"));
+    });
+    $("#InductionModal").click(function () {
+        $("#newInductionModal").load('@Url.Action("AddNew", "InductionSession")' + "?id=@Model.FrameWorkId");
+    });
+
+    $("#DocumentModal").click(function () {
+        $("#DocumentUploadModal").load('@Url.Action("UploadDocument", "Framework")' + "?id=@Model.FrameWorkId");
+    });
+</script>
+
